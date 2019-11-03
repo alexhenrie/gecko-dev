@@ -279,6 +279,7 @@ FinderHighlighter.prototype = {
       let params = {
         allowDistance: 1,
         caseSensitive: this.finder._fastFind.caseSensitive,
+        matchDiacritics: this.finder._fastFind.matchDiacritics,
         entireWord: this.finder._fastFind.entireWord,
         linksOnly,
         word,

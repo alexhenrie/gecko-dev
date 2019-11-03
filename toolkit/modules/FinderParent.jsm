@@ -211,6 +211,12 @@ FinderParent.prototype = {
     });
   },
 
+  set matchDiacritics(aMatchDiacritics) {
+    this.sendMessageToAllContexts("Finder:MatchDiacritics", {
+      matchDiacritics: aMatchDiacritics,
+    });
+  },
+
   set entireWord(aEntireWord) {
     this.sendMessageToAllContexts("Finder:EntireWord", {
       entireWord: aEntireWord,

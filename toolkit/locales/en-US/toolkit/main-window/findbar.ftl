@@ -25,6 +25,11 @@ findbar-case-sensitive =
     .accesskey = C
     .tooltiptext = Search with case sensitivity
 
+findbar-match-diacritics =
+    .label = Match Diacritics
+    .accesskey = D
+    .tooltiptext = Require accent marks etc. to be the same
+
 findbar-entire-word =
     .label = Whole Words
     .accesskey = W

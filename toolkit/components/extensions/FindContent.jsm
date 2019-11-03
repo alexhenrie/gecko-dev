@@ -50,6 +50,7 @@ class FindContent {
    * @param {object} params - the params.
    * @param {string} queryphrase - the text to search for.
    * @param {boolean} caseSensitive - whether to use case sensitive matches.
+   * @param {boolean} matchDiacritics - whether diacritics must match.
    * @param {boolean} includeRangeData - whether to collect and return range data.
    * @param {boolean} searchString - whether to collect and return rect data.
    *
@@ -63,6 +64,7 @@ class FindContent {
       let {
         queryphrase,
         caseSensitive,
+        matchDiacritics,
         entireWord,
         includeRangeData,
         includeRectData,
@@ -74,6 +76,7 @@ class FindContent {
       let iteratorPromise = this.iterator.start({
         word: queryphrase,
         caseSensitive: !!caseSensitive,
+        matchDiacritics: !!matchDiacritics,
         entireWord: !!entireWord,
         finder: this.finder,
         listener: this.finder,

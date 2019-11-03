@@ -89,6 +89,7 @@ nsTypeAheadFind::nsTypeAheadFind()
       mLastFindLength(0),
       mIsSoundInitialized(false),
       mCaseSensitive(false),
+      mMatchDiacritics(false),
       mEntireWord(false) {}
 
 nsTypeAheadFind::~nsTypeAheadFind() {
@@ -192,6 +193,24 @@ nsTypeAheadFind::SetCaseSensitive(bool isCaseSensitive) {
 NS_IMETHODIMP
 nsTypeAheadFind::GetCaseSensitive(bool* isCaseSensitive) {
   *isCaseSensitive = mCaseSensitive;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTypeAheadFind::SetMatchDiacritics(bool matchDiacritics) {
+  mMatchDiacritics = matchDiacritics;
+
+  if (mFind) {
+    mFind->SetMatchDiacritics(mMatchDiacritics);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTypeAheadFind::GetMatchDiacritics(bool* matchDiacritics) {
+  *matchDiacritics = mMatchDiacritics;
 
   return NS_OK;
 }

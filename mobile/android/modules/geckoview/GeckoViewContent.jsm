@@ -331,6 +331,7 @@ class GeckoViewContent extends GeckoViewModule {
     };
 
     finder.caseSensitive = !!aData.matchCase;
+    finder.matchDiacritics = !!aData.matchDiacritics;
     finder.entireWord = !!aData.wholeWord;
     finder.addResultListener(this._finderListener);
 

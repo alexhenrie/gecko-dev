@@ -74,6 +74,8 @@ FinderIterator.prototype = {
    *                                          when the iterator is already running
    * @param {Boolean} options.caseSensitive   Whether to search in case sensitive
    *                                          mode
+   * @param {Boolean} options.matchDiacritics Whether to search in
+   *                                          diacritic-matching mode
    * @param {Boolean} options.entireWord      Whether to search in entire-word mode
    * @param {Finder}  options.finder          Currently active Finder instance
    * @param {Number}  [options.limit]         Limit the amount of results to be
@@ -99,6 +101,7 @@ FinderIterator.prototype = {
   start({
     allowDistance,
     caseSensitive,
+    matchDiacritics,
     entireWord,
     finder,
     limit,
@@ -129,6 +132,9 @@ FinderIterator.prototype = {
     if (typeof caseSensitive != "boolean") {
       throw new Error("Missing required option 'caseSensitive'");
     }
+    if (typeof matchDiacritics != "boolean") {
+      throw new Error("Missing required option 'matchDiacritics'");
+    }
     if (typeof entireWord != "boolean") {
       throw new Error("Missing required option 'entireWord'");
     }
@@ -156,6 +162,7 @@ FinderIterator.prototype = {
     let promise = new Promise(resolve => (resolver = resolve));
     let iterParams = {
       caseSensitive,
+      matchDiacritics,
       entireWord,
       linksOnly,
       useCache,
@@ -301,6 +308,8 @@ FinderIterator.prototype = {
    *
    * @param {Boolean}  options.caseSensitive Whether to search in case sensitive
    *                                         mode
+   * @param {Boolean}  options.matchDiacritics Whether to search in
+   *                                           diacritic-matching mode
    * @param {Boolean}  options.entireWord    Whether to search in entire-word mode
    * @param  {Boolean} options.linksOnly     Whether to search for the word to be
    *                                         present in links only
@@ -310,6 +319,7 @@ FinderIterator.prototype = {
    */
   continueRunning({
     caseSensitive,
+    matchDiacritics,
     entireWord,
     linksOnly,
     word,
@@ -318,6 +328,7 @@ FinderIterator.prototype = {
     return (
       this.running &&
       this._currentParams.caseSensitive === caseSensitive &&
+      this._currentParams.matchDiacritics === matchDiacritics &&
       this._currentParams.entireWord === entireWord &&
       this._currentParams.linksOnly === linksOnly &&
       this._currentParams.word == word &&
@@ -371,6 +382,8 @@ FinderIterator.prototype = {
    *
    * @param  {Boolean} options.caseSensitive Whether to search in case sensitive
    *                                         mode
+   * @param {Boolean}  options.matchDiacritics Whether to search in
+   *                                           diacritic-matching mode
    * @param  {Boolean} options.entireWord    Whether to search in entire-word mode
    * @param  {Boolean} options.linksOnly     Whether to search for the word to be
    *                                         present in links only
@@ -381,6 +394,7 @@ FinderIterator.prototype = {
    */
   _previousResultAvailable({
     caseSensitive,
+    matchDiacritics,
     entireWord,
     linksOnly,
     useCache,
@@ -390,6 +404,7 @@ FinderIterator.prototype = {
       useCache &&
       this._areParamsEqual(this._previousParams, {
         caseSensitive,
+        matchDiacritics,
         entireWord,
         linksOnly,
         word,
@@ -413,6 +428,7 @@ FinderIterator.prototype = {
       !!paramSet1 &&
       !!paramSet2 &&
       paramSet1.caseSensitive === paramSet2.caseSensitive &&
+      paramSet1.matchDiacritics === paramSet2.matchDiacritics &&
       paramSet1.entireWord === paramSet2.entireWord &&
       paramSet1.linksOnly === paramSet2.linksOnly &&
       paramSet1.window === paramSet2.window &&
@@ -622,13 +638,15 @@ FinderIterator.prototype = {
    *
    * @param {Boolean}      options.caseSensitive Whether to search in case
    *                                             sensitive mode
+   * @param {Boolean}      options.matchDiacritics Whether to search in
+   *                                               diacritic-matching mode
    * @param {Boolean}      options.entireWord    Whether to search in entire-word
    *                                             mode
    * @param {String}       options.word          The word to search for
    * @param {nsIDOMWindow} window                The window to search in
    * @yield {Range}
    */
-  *_iterateDocument({ caseSensitive, entireWord, word }, window) {
+  *_iterateDocument({ caseSensitive, matchDiacritics, entireWord, word }, window) {
     let doc = window.document;
     let body = doc.body || doc.documentElement;
 
@@ -651,6 +669,7 @@ FinderIterator.prototype = {
       .createInstance()
       .QueryInterface(Ci.nsIFind);
     nsIFind.caseSensitive = caseSensitive;
+    nsIFind.matchDiacritics = matchDiacritics;
     nsIFind.entireWord = entireWord;
 
     while ((retRange = nsIFind.Find(word, searchRange, startPt, endPt))) {

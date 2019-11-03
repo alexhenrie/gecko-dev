@@ -61,7 +61,10 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsFind)
 NS_IMPL_CYCLE_COLLECTION(nsFind)
 
 nsFind::nsFind()
-    : mFindBackward(false), mCaseSensitive(false), mWordBreaker(nullptr) {}
+    : mFindBackward(false),
+      mCaseSensitive(false),
+      mMatchDiacritics(false),
+      mWordBreaker(nullptr) {}
 
 nsFind::~nsFind() = default;
 
@@ -388,6 +391,22 @@ nsFind::SetCaseSensitive(bool aCaseSensitive) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFind::GetMatchDiacritics(bool* aMatchDiacritics) {
+  if (!aMatchDiacritics) {
+    return NS_ERROR_NULL_POINTER;
+  }
+
+  *aMatchDiacritics = mMatchDiacritics;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFind::SetMatchDiacritics(bool aMatchDiacritics) {
+  mMatchDiacritics = aMatchDiacritics;
+  return NS_OK;
+}
+
 /* attribute boolean entireWord; */
 NS_IMETHODIMP
 nsFind::GetEntireWord(bool* aEntireWord) {
@@ -510,9 +529,8 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   *aRangeRet = 0;
 
   nsAutoString patAutoStr(aPatText);
-  if (!mCaseSensitive) {
-    ToFoldedCase(patAutoStr);
-  }
+  if (!mCaseSensitive) ToFoldedCase(patAutoStr);
+  if (!mMatchDiacritics) ToNaked(patAutoStr);
 
   // Ignore soft hyphens in the pattern
   static const char kShy[] = {char(CH_SHY), 0};
@@ -691,8 +709,9 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
     }
     if (!inWhitespace && IsSpace(patc)) {
       inWhitespace = true;
-    } else if (!inWhitespace && !mCaseSensitive) {
-      c = ToFoldedCase(c);
+    } else if (!inWhitespace) {
+      if (!mCaseSensitive) c = ToFoldedCase(c);
+      if (!mMatchDiacritics) c = ToNaked(c);
     }
 
     if (c == CH_SHY) {

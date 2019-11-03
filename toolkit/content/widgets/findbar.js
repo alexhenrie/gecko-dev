@@ -44,8 +44,10 @@
         </hbox>
         <toolbarbutton anonid="highlight" class="findbar-highlight findbar-button tabbable" data-l10n-id="findbar-highlight-all2" oncommand="toggleHighlight(this.checked);" type="checkbox" />
         <toolbarbutton anonid="find-case-sensitive" class="findbar-case-sensitive findbar-button tabbable" data-l10n-id="findbar-case-sensitive" oncommand="_setCaseSensitivity(this.checked ? 1 : 0);" type="checkbox" />
+        <toolbarbutton anonid="find-match-diacritics" class="findbar-match-diacritics findbar-button tabbable" data-l10n-id="findbar-match-diacritics" oncommand="_setDiacriticMatching(this.checked ? 1 : 0);" type="checkbox" />
         <toolbarbutton anonid="find-entire-word" class="findbar-entire-word findbar-button tabbable" data-l10n-id="findbar-entire-word" oncommand="toggleEntireWord(this.checked);" type="checkbox" />
         <label anonid="match-case-status" class="findbar-find-fast" />
+        <label anonid="match-diacritics-status" class="findbar-find-fast" />
         <label anonid="entire-word-status" class="findbar-find-fast" />
         <label anonid="found-matches" class="findbar-find-fast found-matches" hidden="true" />
         <image anonid="find-status-icon" class="findbar-find-fast find-status-icon" />
@@ -119,6 +121,9 @@
             case "accessibility.typeaheadfind.casesensitive":
               this._self._setCaseSensitivity(prefsvc.getIntPref(aPrefName));
               break;
+            case "accessibility.typeaheadfind.matchdiacritics":
+              this._self._setDiacriticMatching(prefsvc.getIntPref(aPrefName));
+              break;
             case "findbar.entireword":
               this._self._entireWord = prefsvc.getBoolPref(aPrefName);
               this._self.toggleEntireWord(this._self._entireWord, true);
@@ -174,6 +179,10 @@
         "accessibility.typeaheadfind.casesensitive",
         this._observer
       );
+      prefsvc.addObserver(
+        "accessibility.typeaheadfind.matchdiacritics",
+        this._observer
+      );
       prefsvc.addObserver("findbar.entireword", this._observer);
       prefsvc.addObserver("findbar.highlightAll", this._observer);
       prefsvc.addObserver("findbar.modalHighlight", this._observer);
@@ -187,6 +196,9 @@
       );
       this._typeAheadCaseSensitive = prefsvc.getIntPref(
         "accessibility.typeaheadfind.casesensitive"
+      );
+      this._typeAheadMatchDiacritics = prefsvc.getIntPref(
+        "accessibility.typeaheadfind.matchdiacritics"
       );
       this._entireWord = prefsvc.getBoolPref("findbar.entireword");
       this._highlightAll = prefsvc.getBoolPref("findbar.highlightAll");
@@ -465,6 +477,10 @@
         "accessibility.typeaheadfind.casesensitive",
         this._observer
       );
+      prefsvc.removeObserver(
+        "accessibility.typeaheadfind.matchdiacritics",
+        this._observer
+      );
       prefsvc.removeObserver("findbar.entireword", this._observer);
       prefsvc.removeObserver("findbar.highlightAll", this._observer);
       prefsvc.removeObserver("findbar.modalHighlight", this._observer);
@@ -637,6 +653,53 @@
     }
 
     /**
+     * - Updates the diacritic-matching mode of the findbar and its UI.
+     * - @param [optional] aString
+     * -        The string for which diacritic matching might be turned on.
+     * -        This only used when diacritic matching is in auto mode,
+     * -        @see _shouldMatchDiacritics. The default value for this
+     * -        parameter is the find-field value.
+     */
+    _updateDiacriticMatching(aString) {
+      let val = aString || this._findField.value;
+
+      let matchDiacritics = this._shouldMatchDiacritics(val);
+      let checkbox = this.getElement("find-match-diacritics");
+      let statusLabel = this.getElement("match-diacritics-status");
+      checkbox.checked = matchDiacritics;
+
+      statusLabel.value = matchDiacritics ? this._matchDiacriticsStr : "";
+
+      // Show the checkbox on the full Find bar in non-auto mode.
+      // Show the label in all other cases.
+      let hideCheckbox =
+        this._findMode != this.FIND_NORMAL ||
+        (this._typeAheadMatchDiacritics != 0 &&
+          this._typeAheadMatchDiacritics != 1);
+      checkbox.hidden = hideCheckbox;
+      statusLabel.hidden = !hideCheckbox;
+
+      this.browser.finder.matchDiacritics = matchDiacritics;
+    }
+
+    /**
+     * - Sets the findbar diacritic-matching mode
+     * - @param aDiacriticMatching (int)
+     * -   0 - ignore diacritics
+     * -   1 - match diacritics
+     * -   2 - auto = match diacritics iff match string contains diacritics
+     * -   @see _shouldMatchDiacritics
+     */
+    _setDiacriticMatching(aDiacriticMatching) {
+      this._typeAheadMatchDiacritics = aDiacriticMatching;
+      this._updateDiacriticMatching();
+      this._findFailedString = null;
+      this._find();
+
+      this._dispatchFindEvent("diacriticmatchingchange");
+    }
+
+    /**
      * - Updates the entire-word mode of the findbar and its UI.
      */
     _setEntireWord() {
@@ -700,6 +763,9 @@
         );
         this._caseSensitiveStr = stringsBundle.GetStringFromName(
           "CaseSensitive"
+        );
+        this._matchDiacriticsStr = stringsBundle.GetStringFromName(
+          "MatchDiacritics"
         );
         this._entireWordStr = stringsBundle.GetStringFromName("EntireWord");
       }
@@ -821,6 +887,17 @@
       return aString != aString.toLowerCase();
     }
 
+    _shouldMatchDiacritics(aString) {
+      if (this._typeAheadMatchDiacritics == 0) {
+        return false;
+      }
+      if (this._typeAheadMatchDiacritics == 1) {
+        return true;
+      }
+
+      return aString != aString.normalize("NFD");
+    }
+
     onMouseUp() {
       if (!this.hidden && this._findMode != this.FIND_NORMAL) {
         this.close();
@@ -919,6 +996,7 @@
       ).hidden = showMinimalUI;
       foundMatches.hidden = showMinimalUI || !foundMatches.value;
       this._updateCaseSensitivity();
+      this._updateDiacriticMatching();
       this._setEntireWord();
       this._setHighlightAll();
 
@@ -969,6 +1047,7 @@
 
         this._enableFindButtons(val);
         this._updateCaseSensitivity(val);
+        this._updateDiacriticMatching(val);
         this._setEntireWord();
 
         this.browser.finder.fastFind(
@@ -1063,6 +1142,7 @@
       event.initCustomEvent("find" + aType, true, true, {
         query: this._findField.value,
         caseSensitive: !!this._typeAheadCaseSensitive,
+        matchDiacritics: !!this._typeAheadMatchDiacritics,
         entireWord: this._entireWord,
         highlightAll: this._highlightAll,
         findPrevious: aFindPrevious,
